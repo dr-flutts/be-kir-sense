@@ -4,12 +4,12 @@ const unggah = require('express-fileupload')
 const fs = require('fs');
 const mongoose = require("mongoose");
 const Tesseract = require('tesseract.js');
-const { createData, readOneData, createHistory } = require('./db');
+const { createData, readOneData, createHistory, readAllHistory, readByPlat, readData, readDataByPlat } = require('./db');
 
 var app = express()
 app.use(cors())
 app.use(unggah())
-app.use(express.json({limit: "10mb", extended: true}))
+app.use(express.json({limit: '10mb', extended: true}))
 app.use(express.urlencoded({ extended: false }))
 app.use('/img', express.static('storage'))
 
@@ -86,21 +86,48 @@ app.post('/upload', (req, res) => {
     var namaFile = unggahFile.name
     unggahFile.mv('./storage/' + namaFile, (err) => {
       if (err) {
-        console.log(err)
         res.send(err)
       } else {
         Tesseract.recognize(
           `./storage/${namaFile}`,
+          "eng",
           {
             psm: Tesseract.PSM.SINGLE_LINE,
           }
         )
-          .then(({ data: { text } }) => {
-            return res.send({
-              image: `http://localhost:5000/img/${namaFile}`,
-              path: `http://localhost:5000/img/${namaFile}`,
-              text: text,
-            });
+          .then(async({ data: { text } }) => {
+            
+            let [plat, ...etc] = text.split("\n")
+            plat = plat.split('').filter((x) => ALLOWED_CHARS.includes(x.toUpperCase())).join('');
+
+            const result = await readOneData({ plat })
+            if (result && result.tahun < new Date().getFullYear()) {
+              const history = await createHistory({ 
+                plat,
+                nama: result.nama,
+                tahun: result.tahun,
+                kondisi: "Kir tidak aktif",
+                tanggal: new Date()
+              })
+              return res.send(history)
+            } else if (result && result.tahun >= new Date().getFullYear()) {
+                const history = await createHistory({ 
+                  plat,
+                  nama: result.nama,
+                  tahun: result.tahun,
+                  kondisi: "Kir aktif",
+                  tanggal: new Date()
+                })
+                return res.send(history)
+            } else {
+              return res.send({ 
+                  plat,
+                  nama: null,
+                  tahun: null,
+                  kondisi: "Data tidak ditemukan",
+                  tanggal: new Date()
+                })
+            }
           })
           .catch((err) => {
             console.log(err)
@@ -110,10 +137,45 @@ app.post('/upload', (req, res) => {
   }
 })
 
+app.get("/history", async(req, res) => {
+
+  const { plat } = req.query;
+
+  let data;
+
+  
+  if (plat) {
+    data = await readByPlat(plat)
+  } else {
+    data = await readAllHistory();
+  }
+
+
+  return res.status(200).send(data);
+});
+
+app.post("/data", async(req, res) => {
+  const data = await createData(req.body);
+  return res.status(201).send(data);
+})
+app.get("/data", async(req, res) => {
+  const { plat } = req.query;
+
+  let data;
+
+  if (plat) {
+    data = await readDataByPlat(plat)
+  } else {
+    data = await readData();
+  }
+  return res.status(200).send(data);
+})
+
+
+
 app.listen(5000, async () => {
   mongoose.connect(mongoDB)
   .then(() => console.log("Koneksi database sukses"))
   .catch((err) => console.log(err))
   console.log('Server aktif @port 5000!')
-  // await createData({ plat: "B 6349 TAP", nama: "NUZUL HAKIM", tahun: 2023 })
 })

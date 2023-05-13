@@ -32,10 +32,20 @@ async function createHistory(history) {
   return await History.create(history)
 }
 
+async function readAllHistory() {
+  return await History.find();
+}
+
+async function readByPlat(plat) {
+  return await History.findOne({ plat })
+}
+
 
 
 module.exports = {
   createData,
   readOneData,
-  createHistory
+  createHistory,
+  readAllHistory,
+  readByPlat
 }
