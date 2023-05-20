@@ -24,8 +24,16 @@ async function createData(data) {
   return await Data.create(data);
 }
 
+async function readData() {
+  return await Data.find();
+}
+
 async function readOneData(filter) {
   return await Data.findOne(filter)
+}
+
+async function readDataByPlat(plat) {
+  return await Data.findOne({ plat })
 }
 
 async function createHistory(history) {
@@ -44,7 +52,9 @@ async function readByPlat(plat) {
 
 module.exports = {
   createData,
+  readData,
   readOneData,
+  readDataByPlat,
   createHistory,
   readAllHistory,
   readByPlat
