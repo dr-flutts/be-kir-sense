@@ -4,6 +4,8 @@ const unggah = require('express-fileupload')
 const fs = require('fs');
 const mongoose = require("mongoose");
 const Tesseract = require('tesseract.js');
+const dotenv = require("dotenv")
+dotenv.config()
 const { createData, readOneData, createHistory, readAllHistory, readByPlat, readData, readDataByPlat } = require('./db');
 
 var app = express()
@@ -173,7 +175,7 @@ app.get("/data", async(req, res) => {
 
 
 
-app.listen(5000, async () => {
+app.listen(process.env.PORT, async () => {
   mongoose.connect(mongoDB)
   .then(() => console.log("Koneksi database sukses"))
   .catch((err) => console.log(err))
