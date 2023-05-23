@@ -48,8 +48,6 @@ async function readByPlat(plat) {
   return await History.findOne({ plat })
 }
 
-
-
 module.exports = {
   createData,
   readData,
